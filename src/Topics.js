@@ -60,8 +60,9 @@ const Topics = () => {
     setNewTopic({name: '', presented: false, downvotes:0, upvotes: 0})
   }
 
-  function changePresented() {
-
+  function changePresented(topic) {
+    topic.presented = true;
+    topicsRef.doc(topic.id).set(topic)
   }
 
   function upVote(topic){
@@ -98,7 +99,7 @@ const Topics = () => {
               <CheckIcon aria-hidden="true"></CheckIcon>
               }
               {!topic.presented &&
-              <Checkbox checked={topic.presented} onChange={changePresented} ></Checkbox>
+              <Checkbox checked={topic.presented} onChange={() => changePresented(topic)} ></Checkbox>
               }
               <ListItemText>{topic.name}</ListItemText>
               {!topic.presented &&
