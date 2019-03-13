@@ -8,10 +8,10 @@ import {  Checkbox,
           ListItemSecondaryAction,
           IconButton,
           TextField,
-          Fab
+          Fab,
+          Badge
         } from '@material-ui/core';
-  import { ThumbUpRounded, ThumbDownRounded  } from '@material-ui/icons';
-  import AddIcon from '@material-ui/icons/Add'
+  import { ThumbUpRounded, ThumbDownRounded, Add as AddIcon, Check as CheckIcon  } from '@material-ui/icons';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -34,15 +34,14 @@ const Topics = () => {
   const classes = useStyles();
   const [topics, setTopics] = useState([]);
   const [newTopic, setNewTopic] = useState({name: '', presented: false});
-
-  useEffect(() => {
-    const topicsRef = firebase
+  const topicsRef = firebase
       .app()
       .firestore()
       .collection('topics');
 
+  useEffect(() => {
     topicsRef.onSnapshot(querySnapshot => {
-      const topicRecords = [];
+      let topicRecords = [];
 
       querySnapshot.forEach(topic => {
         topicRecords.push({
@@ -51,28 +50,42 @@ const Topics = () => {
         });
       });
 
+      topicRecords = topicRecords.sort((a,b) => a.presented || a.ranking < b.ranking);
       setTopics(topicRecords);
     });
   });
 
   function addTopic() {
-    const topicsRef = firebase
-    .app()
-    .firestore()
-    .collection('topics');
-
     topicsRef.add(newTopic)
-    setNewTopic({name: '', presented: false})
+    setNewTopic({name: '', presented: false, downvotes:0, upvotes: 0})
   }
 
   function changePresented() {
 
   }
 
+  function upVote(topic){
+    topic.upvotes++;
+    topicsRef.doc(topic.id).set(topic)
+    /*const updateTopics = topics.filter(t => !t.presented).sort((a,b) => (a.upvotes - a.downvotes) < (b.upvotes - b.downvotes));
+
+    let ranking = 1;
+    updateTopics.forEach(updateTopic => {
+      updateTopic.ranking = ranking;
+      topicsRef.doc(updateTopic.id).set(updateTopic)
+      ranking++;
+    })*/
+  }
+
+  function downVote(topic) {
+    topic.downvotes++;
+    topicsRef.doc(topic.id).set(topic);
+  }
+
   return (
     <div className={classes.container}>
       <div className={classes.section}>
-        <TextField id="newTopic" value={newTopic.name} label="Nuevo Topic" onChange={ event => setNewTopic({...newTopic, name: event.target.value})} />
+        <TextField id="newTopic" value={newTopic.name} label="Nuevo Tema" onChange={ event => setNewTopic({...newTopic, name: event.target.value})} />
         <Fab size="small" color="primary" aria-label="Add">
           <AddIcon onClick={addTopic} />
         </Fab>
@@ -81,16 +94,25 @@ const Topics = () => {
         <List className={classes.root}>
           {topics.map(topic => (
             <ListItem key={topic.id} button={true} divider={true}>
+              {topic.presented &&
+              <CheckIcon aria-hidden="true"></CheckIcon>
+              }
+              {!topic.presented &&
               <Checkbox checked={topic.presented} onChange={changePresented} ></Checkbox>
+              }
               <ListItemText>{topic.name}</ListItemText>
+              {!topic.presented &&
               <ListItemSecondaryAction>
-                <IconButton aria-label="Comments">
+                <IconButton aria-label="Comments" onClick={ () => upVote(topic)}>
                   <ThumbUpRounded />
                 </IconButton>
-                <IconButton aria-label="Comments">
+                <Badge badgeContent={topic.upvotes || 0} color="primary"></Badge>
+                <IconButton aria-label="Comments" onClick={ () => downVote(topic)}>
                   <ThumbDownRounded />
                 </IconButton>
+                <Badge badgeContent={topic.downvotes || 0} color="secondary"></Badge>
               </ListItemSecondaryAction>
+              }
             </ListItem>
           ))}
         </List>
