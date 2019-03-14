@@ -9,7 +9,9 @@ import {  Checkbox,
           IconButton,
           TextField,
           Fab,
-          Badge
+          Badge,
+          Snackbar,
+          SnackbarContent
         } from '@material-ui/core';
   import { ThumbUpRounded, ThumbDownRounded, Add as AddIcon, Check as CheckIcon  } from '@material-ui/icons';
 
@@ -33,7 +35,8 @@ const useStyles = makeStyles(theme => ({
 const Topics = () => {
   const classes = useStyles();
   const [topics, setTopics] = useState([]);
-  const [newTopic, setNewTopic] = useState({name: '', presented: false});
+  const [newTopic, setNewTopic] = useState({name: '', presented: false, downvotes: 0, upvotes: 0, ranking: 0});
+  const [messageOpen, openMessage] = useState(false);
   const topicsRef = firebase
       .app()
       .firestore()
@@ -57,17 +60,30 @@ const Topics = () => {
 
   function addTopic() {
     topicsRef.add(newTopic)
-    setNewTopic({name: '', presented: false, downvotes:0, upvotes: 0})
+    .then(() => {
+      console.log('Topic added', newTopic);
+      setNewTopic({name: '', presented: false, downvotes:0, upvotes: 0, ranking:0});
+    })
+    .catch(error => console.log(error));
   }
+
 
   function changePresented(topic) {
     topic.presented = true;
-    topicsRef.doc(topic.id).set(topic)
+    topicsRef.doc(topic.id).update(topic)
+    .then(() => {
+      console.log('Topic Presented change', topic)
+    })
+    .catch(error => console.log(error));
   }
 
   function upVote(topic){
     topic.upvotes++;
     topicsRef.doc(topic.id).set(topic)
+    .then(() => {
+      console.log('Topic upvoted', topic)
+    })
+    .catch(error => console.log(error));
     /*const updateTopics = topics.filter(t => !t.presented).sort((a,b) => (a.upvotes - a.downvotes) < (b.upvotes - b.downvotes));
 
     let ranking = 1;
@@ -80,12 +96,18 @@ const Topics = () => {
 
   function downVote(topic) {
     topic.downvotes++;
-    topicsRef.doc(topic.id).set(topic);
+    topicsRef.doc(topic.id).set(topic)
+    .then(() => {
+      console.log('Topic downvoted', topic)
+    })
+    .catch(error => console.log(error));
+
   }
 
   return (
     <div className={classes.container}>
       <div className={classes.section}>
+
         <TextField id="newTopic" value={newTopic.name} label="Nuevo Tema" onChange={ event => setNewTopic({...newTopic, name: event.target.value})} />
         <Fab size="small" color="primary" aria-label="Add">
           <AddIcon onClick={addTopic} />
